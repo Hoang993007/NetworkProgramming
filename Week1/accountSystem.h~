@@ -1,0 +1,37 @@
+#ifndef __ACCOUNTSYSTEM_H__
+#define __ACCOUNTSYSTEM_H__
+
+#include <stdio.h>
+
+/*
+  status:
+  1: active
+  0: blocked
+  2: idle
+*/
+typedef struct _account {
+  string userName;
+  string password;
+  int status;
+}account;
+
+typedef struct _node {
+  user data;
+  user* next;
+}node;
+
+node* loadAccountData (FILE* file);
+
+void storeAccountData (FILE* file);
+
+int isExist(string userName);
+
+int checkPassword(string userName, string password);
+
+account* createNewAccount (string userName, string password, int status);
+
+account* searchAccount (string userName);
+
+void changePass (string userName);
+
+#endif
