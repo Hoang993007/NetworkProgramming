@@ -1,0 +1,47 @@
+#ifndef __ACCOUNTSYSTEM_H__
+#define __ACCOUNTSYSTEM_H__
+
+#include <stdio.h>
+#define IO_ERROR 0
+#define IO_SUCCESS 1
+
+#define NAME_LENGTH 50
+#define PASS_LENGTH 20
+
+/*status: 1: active  - 0: blocked -  2: idle*/
+typedef struct _account {
+  char userName[NAME_LENGTH];
+  char password[PASS_LENGTH];
+  int status;
+}account;
+
+typedef struct _node {
+  account data;
+  struct _node* next;
+}node;
+
+int openInputStream(char* fileName);
+
+void closeInputStream();
+
+void rubbishCollection();
+
+node* createAccount_node ();
+
+node* addNode (node* addNode);
+
+void printDB ();
+
+void loadAccountData ();
+
+int isExist(char* userName);
+
+int checkPassword(char* userName, char* password);
+
+account* createNewAccount (char* userName, char* password, int status);
+
+account* searchAccount (char* userName);
+
+void changePass (char* userName, char* newPass);
+
+#endif

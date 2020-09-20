@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 
+int menu(char* inputFile);
 void printMenu ();
 void accountRegister ();
 void activate ();

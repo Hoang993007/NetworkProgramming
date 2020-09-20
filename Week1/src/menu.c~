@@ -1,5 +1,6 @@
 #include <stdio.h>
-#include "menu.h"
+#include "../inc/menu.h"
+#include "../inc/accountSystem.h"
 
 int menu(char* inputFile) {
   if(openInputStream(inputFile) == IO_ERROR) {
@@ -9,7 +10,7 @@ int menu(char* inputFile) {
   
   int choice;
   do {
-    menu();
+    printMenu();
 
     scanf("%d", &choice); 
 
@@ -30,10 +31,13 @@ int menu(char* inputFile) {
       break;
     }
   }while(choice != 6);
+
+  closeInputStream();
 }
 
 void printMenu () {
   printf("USER MANAGEMENT PROGRAM");
+  printf("\n");
   printf("-------------------------------");
   printf("\n");
   printf("1. Register");
@@ -51,14 +55,13 @@ void printMenu () {
   printf("Your choice (1-6, orther to quit):");
 }
 
+
+/*
 void accountRegister () {
   // 1. read data from keyboard
 
   // 2. check ifExist
-  /*
-    if exist => error
-  */
-
+  
   // 3. add to user list. status = idle
 
 }
@@ -88,3 +91,4 @@ void changePass () {
 
 void signOut () {
 }
+*/
