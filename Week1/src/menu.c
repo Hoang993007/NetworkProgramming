@@ -93,7 +93,7 @@ void accountRegister () {
     addNode(newUserName, password, 2);
     printf("Successful registration. Activation required.");
     printf("\n");
-    printDB();
+    //printDB();
 
   } else {
     printf ("Account existed\n");
@@ -127,7 +127,7 @@ void logIn  () {
     }
 
     strcpy(logedIn[logedInCount-1], logInAccount->userName);
-    printLogedInAccount ();
+    //printLogedInAccount ();
     printf ("Hello %s", logInAccount->userName);
     printf("\n");
   }
@@ -141,18 +141,18 @@ int isLogedIn (char* userName) {
   return -1;
 }
 
-void printLogedInAccount() {
-  printf ("---------------------------------");
-  printf("\n");
-  printf ("ACCOUNT LOGED IN:");
-  printf("\n");
-  printf("\n");
-  for(int i=0; i < logedInCount; i++) {
-    printf ("%s\n", logedIn[i]);
-  }
-  printf ("---------------------------------");
-  printf("\n");
-}
+/* void printLogedInAccount() { */
+/*   printf ("---------------------------------"); */
+/*   printf("\n"); */
+/*   printf ("ACCOUNT LOGED IN:"); */
+/*   printf("\n"); */
+/*   printf("\n"); */
+/*   for(int i=0; i < logedInCount; i++) { */
+/*     printf ("%s\n", logedIn[i]); */
+/*   } */
+/*   printf ("---------------------------------"); */
+/*   printf("\n"); */
+/* } */
 
 account* accessAcc () {
   // 1. read data from keyboard
@@ -267,7 +267,7 @@ void changePass () {
 
   if(checkPassRes == 0) {
     accountChangePass(accountAccess, newPassword);
-    printDB();
+    //printDB();
     printf ("Password is changed");
     printf("\n");
   } else {
@@ -279,7 +279,7 @@ void changePass () {
 }
 
 void signOut () {
-   // 1. read data from keyboard
+  // 1. read data from keyboard
   char userName[MAX_NAME_LENGTH];
 
   printf ("Username: ");
@@ -305,7 +305,7 @@ void signOut () {
 	strcpy(logedIn[j-1],logedIn[j]);
       logedInCount--;
       logedIn = realloc(logedIn, sizeof(userNameType)*logedInCount);
-      printLogedInAccount();
+      //printLogedInAccount();
       break;
     }
   }

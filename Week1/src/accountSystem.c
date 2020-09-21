@@ -95,26 +95,28 @@ void deleteNode (char* userName) {
   }
 }
 
-void printDB () {
-  printf("-----------------------------");
-  printf("\n");
-  printf("Database");
-  printf("\n\n");
-  node* tmp = front;
+/* void printDB () { */
+/*   printf("-----------------------------"); */
+/*   printf("\n"); */
+/*   printf("Database"); */
+/*   printf("\n\n"); */
+/*   node* tmp = front; */
 
-  while(tmp != NULL) {
-    node* tmp2 = tmp;
-    tmp = tmp2->next;
-    printf("%s %s %d\n", tmp2->data.userName, tmp2->data.password, tmp2->data.status);
-  }
+/*   while(tmp != NULL) { */
+/*     node* tmp2 = tmp; */
+/*     tmp = tmp2->next; */
+/*     printf("%s %s %d\n", tmp2->data.userName, tmp2->data.password, tmp2->data.status); */
+/*   } */
 
-  printf("-----------------------------");
-  printf("\n");
-}
+/*   printf("-----------------------------"); */
+/*   printf("\n"); */
+/* } */
 
 void loadAccountData () {
   char buf[1024];
-  
+
+  int line = 0;
+
   while((fgets(buf, sizeof(buf), inputFile)) != NULL) {
 
     // check if data was just read is valid or not
@@ -127,6 +129,19 @@ void loadAccountData () {
 
     /* You can find additional tokens in the same string using strtok(NULL, s2) because the strtok function continues the search begun by the previous strtok call. */
 
+    line++;
+
+    int checkSpace = 0;
+    for(int i=0; i < strlen(buf); i++) {
+      if(buf[i] == ' ') checkSpace ++;
+    }
+
+    if(checkSpace != 2) {
+      printf ("Line %d: Invalid account information!", line);
+      printf("\n");
+      continue;
+    }
+
     char * userName;
     char * password;
     int status;
@@ -134,12 +149,20 @@ void loadAccountData () {
     userName = strtok(buf, " ");
     password = strtok(NULL, " ");
     char * tmp = strtok(NULL, " ");
+    tmp[strlen(tmp)-1] = '\0';
+
+    if(strlen(tmp) > 1 || (tmp[0] > '2' || tmp[0] < '0')) {
+      printf ("Line %d: There's an error in account status!", line);
+      printf("\n");
+      continue;
+    }
+
     status = atoi(tmp);
 
     addNode(userName, password, status);
   }
 
-  printDB();
+  //printDB();
 
   closeInputStream();
 };

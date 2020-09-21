@@ -61,7 +61,7 @@ $(BINDIR):
 	mkdir -p $(BINDIR)
 
 run: $(BIN)
-#	clear
+	clear
 	./$(BIN) $(BINDIR)/nguoidung.txt
 
 .PHONY: clean
