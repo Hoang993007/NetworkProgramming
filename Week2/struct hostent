@@ -1,0 +1,21 @@
+Data Type: struct hostent
+
+    This data type is used to represent an entry in the hosts database. It has the following members:
+
+    char *h_name
+        This is the “official” name of the host.
+    
+    char **h_aliases
+        These are alternative names for the host, represented as a null-terminated vector of strings.
+      
+    int h_addrtype
+        This is the host address type; in practice, its value is always either AF_INET or AF_INET6, with the latter being used for IPv6 hosts. In principle other kinds of addresses could be represented in the database as well as Internet addresses; if this were done, you might find a value in this field other than AF_INET or AF_INET6. See Socket Addresses.
+
+    int h_length
+        This is the length, in bytes, of each address.
+
+    char **h_addr_list
+        This is the vector of addresses for the host. (Recall that the host might be connected to multiple networks and have different addresses on each one.) The vector is terminated by a null pointer.
+
+    char *h_addr
+        This is a synonym for h_addr_list[0]; in other words, it is the first host address. 

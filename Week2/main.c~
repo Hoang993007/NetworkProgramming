@@ -1,0 +1,78 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Internally, the system uses a database to keep track of the mapping between host names and host numbers.
+#include <unistd.h>
+
+// The functions and other symbols for accessing this database are declared in netdb.h.
+#include <netdb.h>
+
+// If the name lookup by gethostbyname or gethostbyaddr fails, you can find out the reason by looking at the value of the variable h_errno.
+#include <errno.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+
+// The data types for representing socket addresses in the Internet namespace are defined in the header file netinet/in.h.
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#define IPFormat AF_INET // AF_INET for IPv4 and AF_INET6 for IPv6
+
+int main(int argc, char *argv[]) {
+  struct hostent* host = NULL;
+
+  int option = atoi(argv[1]);
+
+  switch (option) {
+  case 1:
+    // argv[2] is IP address
+    host = gethostbyaddr(argv[2], strlen(argv[2])*sizeof(char), IPFormat);
+
+    // get official name
+    printf ("Official name: %s", host->h_name);
+    printf("\n");
+
+    printf ("test");
+    printf("\n");
+
+    // get alias name
+    printf ("Alias name:");
+    printf ("\n");
+    printf ("%s", host->h_aliases[0]);
+    printf("\n");
+    break;
+
+  case 2:
+    // argv[2] is domain name
+    host = gethostbyname2 (argv[2], IPFormat);
+
+    // Converts an IP address into an ASCII string representing the address in dot notationget official name
+
+    /* char **h_addr_list */
+    /* This is the vector of addresses for the host. (Recall that the host might be connected to multiple networks and have different addresses on each one.) The vector is terminated by a null pointer. */
+
+    char IPBuf[35]; // For both IPv4 and IPv6
+
+    // get official IP
+    printf ("Official IP: ");
+
+    if(inet_ntop(host->h_addrtype, host->h_addr, IPBuf, sizeof(IPBuf)) != NULL) {
+      printf ("%s", IPBuf);
+    }
+    printf("\n");
+    
+    // get alias IP
+    printf ("Alias IP: ");
+    printf("\n");
+
+    for(int i = 1; host->h_addr_list[i] != NULL; i++) {
+      printf ("%s", inet_ntop(host->h_addrtype, host->h_addr_list[i], IPBuf, 35));
+      printf("\n");
+    }
+    break;
+  }
+
+  return 0;
+}
