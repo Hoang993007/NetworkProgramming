@@ -31,7 +31,7 @@ all: $(BIN)
 $(BIN): $(OBJS) $(BINDIR) $(CLIENTOBJ)
 	$(CC) $(CFLAGS) $(OBJS) $(CLIENTOBJ) -o $(BIN)
 
-$(CLIENTOBJ): client.c $(OBJDIR)
+$(CLIENTOBJ): client.c $(OBJDIR) $(OBJS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(OBJDIR)

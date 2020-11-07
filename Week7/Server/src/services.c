@@ -32,48 +32,13 @@ void accountRegister () {
     // 3. add to user list. status = idle
     newAccount(newUserName, password, IDLE);
     printf("Successful registration. Activation required.");
+  storeAccountDataToFile(outputFilePath);
     printf("\n");
     if(PRINT_DB == 1) printDB();
 
   } else {
     printf ("Account existed\n");
     return;
-  }
-}
-
-account* getAccount (userNameType userName, passwordType password, int *res) {
-  if(isExistUserName(userName) == ACCOUNT_NOT_EXIST) {
-    printf ("Cannot find account\n");
-    return NULL;
-  }
-
-  account* accountAccess = getAccountByUserName(userName);
-
-  if(accountAccess->status == BLOCKED) {
-    printf ("Account is blocked");
-    printf("\n");
-    return NULL;
-  }
-
-  int checkPassRes = checkPassword(accountAccess, password);
-
-  if(checkPassRes == PASS_CORRECT){
-    printf("get account %s sucess\n", accountAccess->userName);
-    return accountAccess;
-  }
-  else {
-    if(checkPassRes == PASS_INCORRECT)
-      printf ("Password is incorrect\n");
-    else if(checkPassRes == ACCOUNT_BLOCKED) {
-      printf ("Account is blocked\n");
-      *res = ACCOUNT_BLOCKED;
-    }
-    else if(checkPassRes == ACCOUNT_IDLE) {
-      printf ("Account is not activated\n");
-      *res = ACCOUNT_IDLE;
-    }
-
-    return NULL;
   }
 }
 
@@ -89,12 +54,13 @@ void activate (userNameType userName, passwordType password) {
 int logIn (char* IP, userNameType userName, passwordType password) {
   int res;
   account* logInAccount = getAccount (userName, password, &res);
-  printf("%d\n", res);
+  printf("Res code: %d\n", res);
   if(logInAccount == NULL)
     {
-      printf("Login error\n");
+      printf("Error: Login error\n");
       return res;
     }
+
 
   if(logedInCount == 0) {
     logedIn = (accessPermit*)malloc(sizeof(accessPermit));
@@ -104,20 +70,25 @@ int logIn (char* IP, userNameType userName, passwordType password) {
     logedIn = realloc(logedIn, sizeof(accessPermit)*(logedInCount+1));
     logedInCount++;
   }
-    
+
   strcpy(logedIn[logedInCount-1].userName, logInAccount->userName);
   strcpy(logedIn[logedInCount-1].IP, IP);
 
   printf("Hello %s\n", logedIn[logedInCount-1].userName);
   if(PRINT_LOGEDIN == 1) printLogedInAccount();
 
-  return LOGIN_SUCCESS;
+  res = LOGIN_SUCCESS;
+  return res;
 }
 
 int isLogedIn (char* IP) {
   if(logInInfoGet(IP) == NULL)
     return NOT_LOGED_IN;
   else return LOGED_IN;
+}
+
+void freeLogIn() {
+free(logedIn);
 }
 
 accessPermit* logInInfoGet(char* IP) {
@@ -158,43 +129,30 @@ void search () {
   }
 }
 
-void changePass (char* IP) {
+void changePass (char* IP, passwordType newPassword) {
   logedIn = logInInfoGet(IP);
-
-  passwordType password;
-  passwordType newPassword;
 
   account* accountAccess = getAccountByUserName(logedIn->userName);
 
-  if(accountAccess->status == BLOCKED) {
-    printf ("Account is blocked");
-    printf("\n");
-    return;
-  }
+  accountChangePass(accountAccess, newPassword);
 
-  printf ("Password: ");
-  scanf ("%s", password);
-  getchar();
+  /*
+    passwordType password;
+    int checkPassRes = checkPassword(accountAccess, password);
 
-  printf ("NewPassword: ");
-  scanf ("%s", newPassword);
-  getchar();
-
-  int checkPassRes = checkPassword(accountAccess, password);
-
-  if(checkPassRes == PASS_CORRECT) {
+    if(checkPassRes == PASS_CORRECT) {
     accountChangePass(accountAccess, newPassword);
 
     if(PRINT_DB == 1) printDB();
 
     printf ("Password is changed");
     printf("\n");
-  } else {
+    } else {
     if(checkPassRes == PASS_INCORRECT)
-      printf ("Current password is incorrect, please try again\n");
+    printf ("Current password is incorrect, please try again\n");
     else if(checkPassRes == ACCOUNT_BLOCKED)
-      printf ("Account is blocked\n");
-  }
+    printf ("Account is blocked\n");
+    }*/
 }
 
 void signOut (char* IP) {

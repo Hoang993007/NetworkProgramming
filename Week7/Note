@@ -4,6 +4,12 @@ Task:
 1) Xây dựng hàm kiểm tra xem có phải là IP hay là host name
 Đưa vào để kiểm tra tham số đầu vào.
 
+2) Phân chia chức năng cho rõ ràng. làm sao để sưj thay đổi là ít nhất
+
+3) Tìm hiểu rồi mới làm, không làm một cách tù mù
+Không làm lại những gì người ta đã làm rồi. Chỉ học nó thôi
+
+4) stdin
 
 Rút ra:
 Khi không còn đối sách, cần bỏ, bỏ luôn. Chờ đợi 1 cái gì từ trên trời rơi xuống. Trong lúc đó tìm cái khác mà làm. 
@@ -14,3 +20,12 @@ Nghĩ bài không thông, bỏ luôn
 
 Lưu lại tất cả  các tài liệu học.
 Mua lấy một ổ cứng/tạo lấy 1 ổ mềm lớn
+
+---------------------------
+technical:
+send:
+Hãy chắc là xâu nhận có kích thước nhỏ hơn xâu cho
+
+Nếu xâu nhận có kích thước nhỏ hơn xâu to, nó chỉ co thể nhận tối đa giá trị của nó (nhận ít hơn thì dựa vào cái khai báo size trong lệnh recv)
+
+Thế nên nếu no ko nhận hết "hàng tồn" sẽ còn ở lại trong stream và sau đó sẽ đc đọc tiếp khi có lệnh recv nữa được gọi 

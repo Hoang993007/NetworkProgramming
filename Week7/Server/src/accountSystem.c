@@ -25,7 +25,7 @@ int openInputStream(char* filePath) {
 
   } else {
     loadDataFromFile ();
-    closeInputStream();
+    //fclose(inputFile);
     return IO_SUCCESS;
   }
 }
@@ -38,10 +38,6 @@ void rubbishCollection() {
     tmp = trash->next;
     free(tmp);
   }
-}
-
-void closeInputStream() {
-  fclose(inputFile);
 }
 
 // add new account -----------------------------------------
@@ -63,7 +59,6 @@ account newAccount (char* userName, char* password, accountStatus status) {
 void addNewAccountToDB (account newAccount) {
   node* newNode = newAccount_node (newAccount);
   addNode(newNode);
-  storeAccountDataToFile(outputFilePath);
 }
 
 node* newAccount_node (account newAccount) {
@@ -109,9 +104,47 @@ int isExistUserName(char* userName) {
 }
 
 // ===================================
+
+account* getAccount (userNameType userName, passwordType password, int *res) {
+  if(isExistUserName(userName) == ACCOUNT_NOT_EXIST) {
+    printf ("%s\n", "Error: Account not exits");
+    return NULL;
+  }
+
+  account* accountAccess = getAccountByUserName(userName);
+
+  if(accountAccess->status == BLOCKED) {
+    printf ("Account is blocked");
+    printf("\n");
+    return NULL;
+  }
+
+  *res = checkPassword(accountAccess, password);
+
+  if(*res == PASS_CORRECT){
+    printf("get account %s sucess\n", accountAccess->userName);
+    return accountAccess;
+  }
+  else {
+    if(*res == PASS_INCORRECT) {
+      printf ("Password is incorrect\n");
+    }
+    else if(*res == ACCOUNT_BLOCKED) {
+      printf ("Account is blocked\n");
+    }
+    else if(*res == ACCOUNT_IDLE) {
+      printf ("Account is not activated\n");
+    }
+
+    return NULL;
+  }
+}
+
+// ===================================
 void accountChangePass (account* accountModify, char* newPass) {
   strcpy(accountModify->password, newPass);
-    storeAccountDataToFile(outputFilePath);
+printDB();
+  storeAccountDataToFile(outputFilePath);
 };
 
 // ============================================
@@ -201,6 +234,7 @@ int storeAccountDataToFile (char* filePath) {
       tmp = tmp2->next;
 
       fprintf(outputFile,"%s %s %d\n", tmp2->data.userName, tmp2->data.password, tmp2->data.status);
+
     }
   }
   fclose(outputFile);
@@ -222,7 +256,7 @@ else if(accountCheck->status == BLOCKED)
     if(accountCheck->wrongPass == 3) {
       accountCheck->status = BLOCKED;
     storeAccountDataToFile(outputFilePath);
-      return ACCOUNT_BLOCKED;
+      return ACCOUNT_JUST_BLOCKED;
     }
 
     return PASS_INCORRECT;
