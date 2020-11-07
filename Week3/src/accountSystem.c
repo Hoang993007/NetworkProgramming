@@ -207,8 +207,8 @@ int checkPassword(account* accountCheck, char* password) {
   }
 };
 
-void activateAccount (account accountActivate) {
-  switch (accountActivate.status) {
+void activateAccount (account* accountActivate) {
+  switch (accountActivate->status) {
   case 0:
     printf ("Account is blocked.");
     printf("\n");

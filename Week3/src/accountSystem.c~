@@ -1,0 +1,147 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "../inc/accountSystem.h"
+
+FILE* inputFile;
+node* front = NULL;
+node* rear = NULL;
+
+int openInputStream(char* fileName) {
+  inputFile = fopen(fileName, "r+");
+  if(inputFile == NULL) {
+    return IO_ERROR;
+  } else {
+    loadAccountData();
+    return IO_SUCCESS;
+  }
+}
+
+void rubbishCollection() {
+  node* tmp = front;
+  
+  while(tmp != NULL) {
+    node* trash = tmp;
+    tmp = trash->next;
+    free(tmp);
+  }
+}
+
+void closeInputStream() {
+  fclose(inputFile);
+}
+
+node* createAccount_node (char* userName, char* password, int status) {
+  node* tmp = (node*)malloc(sizeof(node));
+  strcpy(tmp->data.userName, userName);
+  strcpy(tmp->data.password, password);
+  tmp->data.status = status;
+};
+
+node* addNode (node* addNode) {
+  if(front == NULL) {
+    front = addNode;
+    rear = front;
+  } else if (front != NULL) {
+    rear->next = addNode;
+    rear = addNode;
+  }
+}
+
+node* deleteNode (char* userName) {
+  
+}
+
+
+
+
+void printDB () {
+  printf("-----------------------------");
+  printf("\n");
+  printf("Database");
+  printf("\n\n");
+  node* tmp = front;
+
+  while(tmp != NULL) {
+    node* tmp2 = tmp;
+    tmp = tmp2->next;
+    printf("%s %s %d\n", tmp2->data.userName, tmp2->data.password, tmp2->data.status);
+    }
+
+  printf("-----------------------------");
+  printf("\n");
+}
+
+void loadAccountData () {
+  char buf[1024];
+  
+  while((fgets(buf, sizeof(buf), inputFile)) != NULL) {
+
+    // check if data was just read is valid or not
+
+    //strtok function
+    
+    /*Returns */
+
+    /* The strtok function returns a pointer to the first character of the token. If no token is found, a null pointer is returned. */
+
+    /* You can find additional tokens in the same string using strtok(NULL, s2) because the strtok function continues the search begun by the previous strtok call. */
+
+    char * userName;
+    char * password;
+    int status;
+
+    userName = strtok(buf, " ");
+    password = strtok(NULL, " ");
+    char * tmp = strtok(NULL, " ");
+    status = atoi(tmp);
+    
+    node* newNode = createAccount_node(userName, password, status);
+
+    addNode(newNode);
+  }
+
+  printDB();
+};
+
+int isExist(char* userName) {
+  node* tmp = front;
+
+  while(tmp != NULL) {
+    node* tmp2 = tmp;
+    tmp = tmp2->next;
+    if (strcmp(tmp2->data.userName, userName) == 0) return 0;
+    }
+
+  return -1;
+};
+
+int checkPassword(char* userName, char* password) {
+  account* checkAccount = searchAccount(userName);
+  
+  if(checkAccount != NULL) {
+    if(strcmp(password, checkAccount->password) == 0)
+      return 1;
+    else return 0;
+  }
+};
+
+account* searchAccount (char* userName) {
+  node* tmp = front;
+
+  while(tmp != NULL) {
+    node* tmp2 = tmp;
+    tmp = tmp2->next;
+    if (strcmp(tmp2->data.userName, userName) == 0) return &(tmp2->data);
+    }
+
+  return NULL;
+};
+
+void changePass (char* userName, char* newPass) {
+  account* changePassAccount = searchAccount(userName);
+  
+  if(changePassAccount != NULL) {
+    strcpy(changePassAccount->password, newPass);
+  }
+};

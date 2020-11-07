@@ -35,6 +35,7 @@ node* createAccount_node (char* userName, char* password, int status);
 void addNode (char* userName, char* password, int status);
 node* findNode (char* userName);
 void deleteNode (char* userName);
+void printDB ();
 void loadAccountData ();
 int storeAccountDataToFile (char* fileName);
 int isExist(char* userName);
