@@ -1,0 +1,176 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+//
+#include <sys/types.h>
+#include <sys/socket.h>
+//
+#include <netinet/in.h>
+//
+#include <unistd.h>
+//
+#include <arpa/inet.h> 
+#include <errno.h>
+//
+#include "./inc/services.h"
+#include "./inc/accountSystem.h"
+
+#define BUFF_SIZE 255
+#define LISTENQ 3
+
+int main(int argc, char *argv[]) {
+  init("./Server/bin/nguoidung.txt");
+
+  if(argc != 2) {
+    printf("Wrong parameter\n");
+    exit(0);
+  }
+
+  int SERV_PORT;
+  int listenfd, connfd, rcvBytes;
+  // pid_t data type stands for process identification and is used to represent process ids.
+  pid_t childpid;
+  socklen_t clientSocketLen;
+
+  struct sockaddr_in servaddr, cliaddr;
+
+  char buff[BUFF_SIZE + 1];
+
+  SERV_PORT = atoi(argv[1]);
+
+  bzero(&servaddr, sizeof(servaddr));
+
+  //Step 1: Construct socket
+  printf("Constructing socket...\n");
+
+  if((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+    perror("Error: "); 
+    exit(EXIT_FAILURE);
+  }
+
+  //Step 2: Bind address to socket
+  printf("Binding address to the socket...\n");
+
+  servaddr.sin_family = AF_INET;
+  servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  servaddr.sin_port = htons(SERV_PORT);
+
+  if(bind(listenfd, (struct sockaddr *) &servaddr, sizeof(servaddr))){
+    perror("Error: ");
+    exit(EXIT_FAILURE);
+  }
+
+  printf("Server started.\n");
+
+  // Establish a socket to LISTENING for incoming connection
+  printf("Establishing a socket to LISTENING for incoming connection\n");
+  if(listen(listenfd, LISTENQ) < 0){
+    perror("Error: ");
+    exit(EXIT_FAILURE);
+  }
+
+  //Step 3: Communicate with client
+  /* now loop, receiving data and printing what we received */
+
+  int service;
+  char userName[255];
+  char password[255];
+  char xxx[255];
+
+  for(;;){
+    printf("%s\n", "Server are waiting for connections...");
+
+    // Accept a connection request -> return a File Descriptor (FD)
+    if((connfd = accept(listenfd, (struct sockaddr*) &cliaddr, &clientSocketLen)) < 0){
+      perror("Error: ");
+      exit(EXIT_FAILURE);
+    }
+
+    printf("%s\n", "Accept connection request...");
+
+    while((rcvBytes = recv(connfd, buff, sizeof(buff), 0)) > 0) {
+      buff[rcvBytes] = '\0';
+      printf("[%s:%d]:\n\t%s\n", inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port), buff);
+
+      send(connfd, buff, sizeof(buff), 0);
+      //service = atoi(buff);
+
+
+      /* switch(service){ */
+      /* case 1: */
+      /* 	//accountRegister(); */
+      /* 	break; */
+      /* case 2: */
+      /* 	//activate(); */
+      /* 	break; */
+      /* case 3: */
+      /* 	receiveFromClient(sockfd, &cliaddr, userName); */
+      /* 	receiveFromClient(sockfd, &cliaddr, password); */
+      /* 	if(isLogedIn(inet_ntoa(cliaddr.sin_addr)) == NOT_LOGED_IN) { */
+      /* 	  int res = logIn (inet_ntoa(cliaddr.sin_addr), userName, password); */
+      /* 	  printf("%d\n", res); */
+      /* 	  if(res == LOGIN_SUCCESS){ */
+      /* 	    sendToClient(sockfd, &cliaddr, "OK"); */
+      /* 	    sendToClient(sockfd, &cliaddr, "\n"); */
+      /* 	  } */
+      /* 	  else if(res == ACCOUNT_BLOCKED) { */
+      /* 	    sendToClient(sockfd, &cliaddr, "Account "); */
+      /* 	    sendToClient(sockfd, &cliaddr, "is "); */
+      /* 	    sendToClient(sockfd, &cliaddr, "blocked"); */
+      /* 	    sendToClient(sockfd, &cliaddr, "\n"); */
+      /* 	  } */
+      /* 	  else if(res == ACCOUNT_IDLE) { */
+      /* 	    sendToClient(sockfd, &cliaddr, "Account "); */
+      /* 	    sendToClient(sockfd, &cliaddr, "not "); */
+      /* 	    sendToClient(sockfd, &cliaddr, "ready"); */
+      /* 	    sendToClient(sockfd, &cliaddr, "\n"); */
+      /* 	  } */
+      /* 	  else { */
+      /* 	    sendToClient(sockfd, &cliaddr, "NOT OK"); */
+      /* 	    sendToClient(sockfd, &cliaddr, "\n"); */
+      /* 	  } */
+      /* 	} */
+      /* 	else printf("You have already loged in\n"); */
+      /* 	break; */
+      /* 	/\* */
+      /* 	  case 4: */
+      /* 	  if(isLogedIn(IP) == LOGED_IN) */
+      /* 	  search(); */
+      /* 	  else printf("You have not loged in\n"); */
+      /* 	  break; */
+      /* 	  case 5: */
+      /* 	  if(isLogedIn(IP) == LOGED_IN) */
+      /* 	  changePass(IP); */
+      /* 	  else printf("You have not loged in\n"); */
+      /* 	  break; */
+      /* 	  case 6: */
+      /* 	  if(isLogedIn(IP) == LOGED_IN) */
+      /* 	  signOut(IP); */
+      /* 	  else printf("You have not loged in\n"); */
+      /* 	  break;*\/ */
+
+      /* case 7: */
+      /* 	receiveFromClient(sockfd, &cliaddr, xxx); */
+      /* 	sendToClient(sockfd, &cliaddr, xxx); */
+      /* 	sendToClient(sockfd, &cliaddr, "\n"); */
+      /* 	break; */
+      /* } */
+    }
+  }
+
+  if(rcvBytes < 0) {
+    perror("Read error");
+    exit(1);
+  }
+
+  printf("Closing the file descriptor...\n");
+  close(connfd);
+
+  printf("Closing listening socket...\n");
+  close (listenfd);
+  // không đóng => mất socket
+
+  rubbishCollection();
+  //another rubbish collection
+  return 0;
+}

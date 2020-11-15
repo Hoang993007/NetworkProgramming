@@ -22,7 +22,10 @@ int openInputStream(char* filePath) {
 
   if(inputFile == NULL) {
     return IO_ERROR;
+
   } else {
+    loadDataFromFile ();
+    closeInputStream();
     return IO_SUCCESS;
   }
 }
@@ -37,6 +40,10 @@ void rubbishCollection() {
   }
 }
 
+void closeInputStream() {
+  fclose(inputFile);
+}
+
 // add new account -----------------------------------------
 account newAccount (char* userName, char* password, accountStatus status) {
   account newAccount;
@@ -49,10 +56,6 @@ account newAccount (char* userName, char* password, accountStatus status) {
   newAccount.status = status;
   newAccount.wrongActiveCode = 0;
   newAccount.wrongPass = 0;
-
-  newAccount.ipLimit = 0;
-
-  addNewAccountToDB(newAccount);
 }
 
 void addNewAccountToDB (account newAccount) {
@@ -103,53 +106,13 @@ int isExistUserName(char* userName) {
 }
 
 // ===================================
-
-account* getAccount (userNameType userName, passwordType password, int *res) {
-  if(isExistUserName(userName) == ACCOUNT_NOT_EXIST) {
-    printf ("%s\n", "Error: Account not exits");
-    return NULL;
-  }
-
-  account* accountAccess = getAccountByUserName(userName);
-
-  if(accountAccess->status == BLOCKED) {
-    printf ("Account is blocked");
-    printf("\n");
-    return NULL;
-  }
-
-  *res = checkPassword(accountAccess, password);
-
-  if(*res == PASS_CORRECT){
-    printf("get account %s sucess\n", accountAccess->userName);
-    return accountAccess;
-  }
-  else {
-    if(*res == PASS_INCORRECT) {
-      printf ("Password is incorrect\n");
-    }
-    else if(*res == ACCOUNT_BLOCKED) {
-      printf ("Account is blocked\n");
-    }
-    else if(*res == ACCOUNT_IDLE) {
-      printf ("Account is not activated\n");
-    }
-
-    return NULL;
-  }
-}
-
-// ===================================
-void accountChangePass (account* accountModify, char* newPass) {
-  strcpy(accountModify->password, newPass);
-printDB();
-  storeAccountDataToFile(outputFilePath);
+void accountChangePass (account accountModify, char* newPass) {
+  strcpy(accountModify.password, newPass);
 };
 
 // ============================================
 void deleteAccountByUserName (char* userName) {
   deleteNodeByUserName(userName);
-    storeAccountDataToFile(outputFilePath);
 }
 
 void deleteNodeByUserName (char* userName) {
@@ -177,10 +140,6 @@ void deleteNodeByUserName (char* userName) {
 
 // ===========================================================
 void loadDataFromFile () {
-  if(front != NULL) rubbishCollection();
-  front = NULL;
-  rear = NULL;
-
   char buf[1024];
 
   int line = 0;
@@ -216,7 +175,7 @@ void loadDataFromFile () {
 
     status = atoi(tmp);
 
-    newAccount (userName, password, status);
+    newAccount (userName, password, status)
   }
 
   if(PRINT_DB == 1) printDB();
@@ -237,7 +196,6 @@ int storeAccountDataToFile (char* filePath) {
       tmp = tmp2->next;
 
       fprintf(outputFile,"%s %s %d\n", tmp2->data.userName, tmp2->data.password, tmp2->data.status);
-
     }
   }
   fclose(outputFile);
@@ -245,21 +203,17 @@ int storeAccountDataToFile (char* filePath) {
 }
 
 // ==============================================================
-int checkPassword(account* accountCheck, char* password) {
-  if(accountCheck->status == IDLE){
-printf("idle account\n");
-    return ACCOUNT_IDLE;}
-else if(accountCheck->status == BLOCKED)
+int checkPassword(account accountCheck, char* password) {
+  if(accountCheck.status == BLOCKED)
     return ACCOUNT_BLOCKED;
-  else if(strcmp(password, accountCheck->password) == 0)
+  else if(strcmp(password, accountCheck.password) == 0)
     return PASS_CORRECT;
   else {
-    accountCheck->wrongPass ++;
+    accountCheck.wrongPass ++;
 
-    if(accountCheck->wrongPass == 3) {
-      accountCheck->status = BLOCKED;
-    storeAccountDataToFile(outputFilePath);
-      return ACCOUNT_JUST_BLOCKED;
+    if(accountCheck.wrongPass == 3) {
+      accountCheck.status = 0;
+      return ACCOUNT_BLOCKED;
     }
 
     return PASS_INCORRECT;
@@ -269,7 +223,7 @@ else if(accountCheck->status == BLOCKED)
 // ==============================================================
 /*status: 1: active  - 0: blocked -  2: idle*/
 int activateAccount (account* accountActivate) {
-  switch (accountActivate->status) {
+  switch (accountActivate.status) {
   case 0:
     return ACCOUNT_BLOCKED;
     break;
@@ -284,7 +238,6 @@ int activateAccount (account* accountActivate) {
 
     if(strcmp(activeCode, ACTIVE_CODE) == 0) {
       accountActivate->status = 1;
-    storeAccountDataToFile(outputFilePath);
       printf ("Account is activated");
       printf("\n");
       return ACTIVE_SUCCESS;
