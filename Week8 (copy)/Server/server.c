@@ -189,7 +189,7 @@ int main(int argc, char *argv[]) {
 	if(FD_ISSET(clientConnfd[k], &readfds)) {
 	  // printf("Do something\n");
 
-	  if((recvBytes = recv(clientConnfd[k], recvBuff, sizeof(recvBuff), 0)) > 0) {// receive service number
+	  while((recvBytes = recv(clientConnfd[k], recvBuff, sizeof(recvBuff), 0)) > 0) {// receive service number
 	    recvBuff[recvBytes] = '\0';
 	    printf("[%s:%d]: Service num: %s\n", inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port), recvBuff);
 
@@ -313,12 +313,6 @@ int main(int argc, char *argv[]) {
 		signOut(inet_ntoa(cliaddr.sin_addr));
 		printDB();
 		printf("Client exited\n");
-
-		printf("Closing the file descriptor of the client connection...\n");
-
-		FD_CLR(clientConnfd[k], &readfds);
-		close(clientConnfd[k]);
-		clientConnfd[k] = -1;
 	      }
 	      else printf("Not loged in\n");
 	      break;
@@ -326,14 +320,14 @@ int main(int argc, char *argv[]) {
 
 	    if(recvBytes < 0) {
 	      perror("Client exited\n");
-
-	      printf("Closing the file descriptor of the client connection...\n");
-
-	      FD_CLR(clientConnfd[k], &readfds);
-	      close(clientConnfd[k]);
-	      clientConnfd[k] = -1;
 	    }
 	  }
+
+	  printf("Closing the file descriptor of the client connection...\n");
+
+	  FD_CLR(clientConnfd[k], &readfds);
+	  close(clientConnfd[k]);
+	  clientConnfd[k] = -1;
 	}
       }
     }

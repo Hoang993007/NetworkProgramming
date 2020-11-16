@@ -33,7 +33,7 @@ void tostring(char [], int);
 int toint(char []);
 
 int main(int argc, char *argv[]) {
-  init("./Server/bin/nguoidung.txt");
+  init("./Server/bin/data.txt");
   loadDataFromFile();
   printf("Database are now ready\n");
 
