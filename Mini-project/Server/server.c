@@ -17,25 +17,27 @@
 #include "./inc/services.h"
 #include "./inc/accountSystem.h"
 #include "./inc/errorCode.h"
+#include "./inc/convertNumAndStr.h"
 //
 #include <sys/select.h>
 #include <sys/time.h>
-
-#define TRUE 1
-#define FALSE 0
 
 #define RECV_BUFF_SIZE 4096
 #define LISTENQ 3 /* the number of pending connections that can be queued for a server socket. (call waiting allowance */
 
 #define MAX_CLIENT 3
 
-void tostring(char [], int);
-int toint(char []);
+void service_register(struct sockaddr_in cliaddr, int clientConnfd);
+void service_activate(struct sockaddr_in cliaddr, int clientConnfd);
+void service_signin(struct sockaddr_in cliaddr, int clientConnfd);
+void service_changePass(struct sockaddr_in cliaddr, int clientConnfd);
+void service_newGame(struct sockaddr_in cliaddr, int clientConnfd);
+void service_gamePlayingHistory(struct sockaddr_in cliaddr, int clientConnfd);
+void service_signout(struct sockaddr_in cliaddr, int clientConnfd);
 
 int main(int argc, char *argv[]) {
-  init("./Server/bin/data.txt");
-  loadDataFromFile();
-  printf("Database are now ready\n");
+  loadUsername_passData();
+  printf("Server is now ready for logining\n");
 
   if(argc != 2) {
     printf("Parameter incorrect\n");
@@ -45,12 +47,8 @@ int main(int argc, char *argv[]) {
   int SERV_PORT;
   int listenfd, connfd, recvBytes;
 
+  // clientConnfd hold ID of client connection
   int clientConnfd[FD_SETSIZE], askForCheckingActivity;
-  // clientConnfc hold ID of client connection
-
-  //  On success, returns the total number of bits that are set(that is the number of ready file descriptors)
-  // • On time-out, returns 0
-  // • On error, return -1
 
   int maxfd;
 
@@ -64,6 +62,7 @@ int main(int argc, char *argv[]) {
   struct sockaddr_in servaddr, cliaddr; // address structure
 
   char recvBuff[RECV_BUFF_SIZE + 1];
+
 
   SERV_PORT = atoi(argv[1]);
 
@@ -80,7 +79,9 @@ int main(int argc, char *argv[]) {
 
   // Preparation of the server address
   servaddr.sin_family = AF_INET; // IPv4
-  servaddr.sin_addr.s_addr = htonl(INADDR_ANY); /* kernel chooses IP address for server - this time is 172.0.0.1 - local host address */
+  servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  /* INADDR_ANY: kernel chooses IP address for server
+     This time is 172.0.0.1 - local host address */
   servaddr.sin_port = htons(SERV_PORT); // specifies port
 
   //Step 2: Bind address to socket
@@ -111,14 +112,6 @@ int main(int argc, char *argv[]) {
 
   // fd_sets use to specify the descriptors that we want the kernel to test for reading, writing, and exception conditions.
 
-  // In readfds we hold the socket ID and the bit for it
-
-  // s1 = socket(...); connect(s1, ...)...
-  // s2 = socket(...); connect(s2, ...)...
-
-  // Our server use only one socket to talk:
-  // Which have socket ID is listenfd
-
   // add listenfd to set and turn on the bit for fd in set
   FD_SET(listenfd, &readfds);
   maxfd = listenfd;
@@ -130,11 +123,10 @@ int main(int argc, char *argv[]) {
   //Step 3: Communicate with client
   /* now loop, receiving data and printing what we received */
 
-  while(TRUE){
+  while(1){
     clientSocketLen = sizeof(cliaddr);
 
-    //wait for an activity on one of the sockets
-    // In fact we have only one socket here
+    //wait for an activity from a descriptor
     //(timeout 10.5 secs)
     tv.tv_sec = 10;
     tv.tv_usec = 500000;
@@ -142,6 +134,10 @@ int main(int argc, char *argv[]) {
     // The select() function asks kernel to simultaneously check multiple sockets (saved in readfs)...
     //...to see if they have data waiting to be recv(), or if you can send() data to them without blocking, or if some exception has occurred.
     askForCheckingActivity = select(maxfd + 1, &readfds, NULL, NULL, &tv);
+    //  On success, returns the total number of bits that are set(that is the number of ready file descriptors)
+    // • On time-out, returns 0
+    // • On error, return -1
+
     if(askForCheckingActivity == -1) {
       perror("\Error: ");
       // error occurred in select()
@@ -189,179 +185,197 @@ int main(int argc, char *argv[]) {
 	if(FD_ISSET(clientConnfd[k], &readfds)) {
 	  // printf("Do something\n");
 
-	  if((recvBytes = recv(clientConnfd[k], recvBuff, sizeof(recvBuff), 0)) > 0) {// receive service number
+	  while((recvBytes = recv(clientConnfd[k], recvBuff, sizeof(recvBuff), 0)) > 0) {// receive service number
 	    recvBuff[recvBytes] = '\0';
 	    printf("[%s:%d]: Service num: %s\n", inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port), recvBuff);
 
 	    int service;
 	    service = atoi(recvBuff);
 
-	    printDB();
+	    print_username_pass();
 
 	    switch(service){
 	    case 1:
-	      printf ("%s\n", "Service 1:");
-
-	      userNameType userName;
-	      passwordType password;
-
-	      //accountRegister();
+	      printf ("%s\n", "Service 1: Register");
+              service_register(cliaddr, clientConnfd[k]);
 	      break;
 
 	    case 2:
-	      printf ("%s\n", "Service 2:");
-
-	      //activate();
+	      printf ("%s\n", "Service 2: Activate account");
+              service_activate(cliaddr, clientConnfd[k]);
 	      break;
 
 	    case 3:
-	      printf ("%s\n", "Service 3:");
-
-	      recvBytes = recv(clientConnfd[k], recvBuff, sizeof(recvBuff), 0);
-	      userName[recvBytes] = '\0';
-	      strcpy(userName, recvBuff);
-	      printf("[%s:%d]: User name: %s\n", inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port), userName);
-
-	      if(isExistUserName(userName) == ACCOUNT_EXIST) {
-		send(clientConnfd[k], "O", sizeof("O"), 0);
-	      } else {
-		printf("Account doesn't exit\n");
-		send(clientConnfd[k], "X", sizeof("X"), 0);
-		break;
-	      }
-
-	      recvBytes = recv(clientConnfd[k], recvBuff, sizeof(recvBuff), 0);
-	      recvBuff[recvBytes] = '\0';
-	      strcpy(password, recvBuff);
-	      printf("[%s:%d]: password: %s\n", inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port), password);
-
-	      if(isLogedIn(inet_ntoa(cliaddr.sin_addr)) == NOT_LOGED_IN) {
-		int res = logIn (inet_ntoa(cliaddr.sin_addr), userName, password);
-		// for test
-		// printf("%d\n", res);
-		char sres[10];
-		tostring(sres, res);
-		send(clientConnfd[k], sres, sizeof(sres), 0);
-	      }
+	      printf ("%s\n", "Service 3: Sign in");
+              service_signin(cliaddr, clientConnfd[k]);
 	      break;
 
-
 	    case 4:
-	      if(isLogedIn(inet_ntoa(cliaddr.sin_addr)) == LOGED_IN)
-		// search()
-		;
+	      printf ("%s\n", "Service 4: Change password");
+	      if(isLogedIn(inet_ntoa(cliaddr.sin_addr)) == LOGED_IN) {
+              	service_changePass(cliaddr, clientConnfd[k]);
+              }
 	      else printf("Not loged in\n");
 	      break;
 
+	    case 5:
+	      printf ("%s\n", "Service 5: New game");
+	      if(isLogedIn(inet_ntoa(cliaddr.sin_addr)) == LOGED_IN) {
+              	service_newGame(cliaddr, clientConnfd[k]);
+              }
+	      else printf("Not loged in\n");	      
+	      break;
+
 	    case 6:
-	      printf ("%s\n", "Service 6:");
-
-	      if(isLogedIn(inet_ntoa(cliaddr.sin_addr)) != LOGED_IN) {
-		printf("Not loged in\n");
-	      } else {
-		passwordType newPassword;
-		printf("check1!!!\n");
-		recvBytes = recv(clientConnfd[k], recvBuff, sizeof(recvBuff), 0);
-		puts(recvBuff);
-		printf("check2!!!\n");
-		recvBuff[recvBytes] = '\0';
-		strcpy(newPassword, recvBuff);
-		printf("New password: %s\n", newPassword);
-		int numChar = 0;
-
-		for(int i = 0; i < strlen(newPassword); i++) {
-		  if (newPassword[i] < '0'
-		      || (newPassword[i] > '9' && newPassword[i] < 'A')
-		      || (newPassword[i] > 'Z' && newPassword[i] < 'a')
-		      || newPassword[i] > 'z') {
-		    send(clientConnfd[k], "Error", sizeof("Error"), 0);
-		    break;
-		  }
-
-		  if(newPassword[i] <= '9' && newPassword[i] >= '0') {
-		    numChar++;
-		  }
-		}
-		printf("Changing password...\n");
-
-		changePass(inet_ntoa(cliaddr.sin_addr), newPassword);
-
-		passwordType encodePass;
-		int charCharIndex, numCharIndex;
-		encodePass[strlen(newPassword)] = '\0';
-		charCharIndex = numChar;
-		numCharIndex = 0;
-		printf("New password num: %d\n", numChar);
-		printf("New password char: %d\n", (int)(strlen(newPassword) - numChar));
-
-		for(int i = 0; i < strlen(newPassword); i++) {
-		  if(newPassword[i] <= '9' && newPassword[i] >= '0') {
-		    encodePass[numCharIndex] = newPassword[i];
-		    numCharIndex++;
-		  } else {
-		    encodePass[charCharIndex] = newPassword[i];
-		    charCharIndex++;
-		  }
-		}
-		printf("EncodedPass: %s\n", encodePass);
-		send(clientConnfd[k], encodePass, sizeof(encodePass), 0);
-	      }
+	      printf ("%s\n", "Service 6: Game playing history");
+	      if(isLogedIn(inet_ntoa(cliaddr.sin_addr)) == LOGED_IN) {
+              	service_gamePlayingHistory(cliaddr, clientConnfd[k]);
+              }
+	      else printf("Not loged in\n");
 	      break;
 
 	    case 7:
+	      printf ("%s\n", "Service 7: Sign out");
 	      if(isLogedIn(inet_ntoa(cliaddr.sin_addr)) == LOGED_IN) {
-		signOut(inet_ntoa(cliaddr.sin_addr));
-		printDB();
-		printf("Client exited\n");
-
-		printf("Closing the file descriptor of the client connection...\n");
-
-		FD_CLR(clientConnfd[k], &readfds);
-		close(clientConnfd[k]);
-		clientConnfd[k] = -1;
-	      }
+              	service_signout(cliaddr, clientConnfd[k]);
+              }
 	      else printf("Not loged in\n");
 	      break;
 	    }
 
 	    if(recvBytes < 0) {
 	      perror("Client exited\n");
-
-	      printf("Closing the file descriptor of the client connection...\n");
-
-	      FD_CLR(clientConnfd[k], &readfds);
-	      close(clientConnfd[k]);
-	      clientConnfd[k] = -1;
 	    }
 	  }
+
+	  printf("Closing the file descriptor of the client connection...\n");
+
+	  FD_CLR(clientConnfd[k], &readfds);
+	  close(clientConnfd[k]);
+	  clientConnfd[k] = -1;
 	}
       }
     }
   }
 
-  rubbishCollection();
+  freeAccountNode();
   freeLogIn();
-  //another rubbish collection
 
   return 0;
 }
 
-// -------------------------------------------------
-void tostring(char str[], int num)
-{
-  int i, rem, len = 0, n;
+void service_register(struct sockaddr_in cliaddr, int clientConnfd) {
 
-  n = num;
-  while (n != 0)
-    {
-      len++;
-      n /= 10;
+}
+
+void service_activate(struct sockaddr_in cliaddr, int clientConnfd) {
+
+}
+
+void service_signin(struct sockaddr_in cliaddr, int clientConnfd) {
+  int recvBytes;
+  char recvBuff[RECV_BUFF_SIZE + 1];
+
+  userNameType userName;
+  passwordType password;
+
+  recvBytes = recv(clientConnfd, recvBuff, sizeof(recvBuff), 0);
+  userName[recvBytes] = '\0';
+  strcpy(userName, recvBuff);
+  printf("[%s:%d]: User name: %s\n", inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port), userName);
+
+  if(isExistUserName(userName) == ACCOUNT_EXIST) {
+    send(clientConnfd, "O", sizeof("O"), 0);
+  } else {
+    printf("Account doesn't exit\n");
+    send(clientConnfd, "X", sizeof("X"), 0);
+    return;
+  }
+
+  recvBytes = recv(clientConnfd, recvBuff, sizeof(recvBuff), 0);
+  recvBuff[recvBytes] = '\0';
+  strcpy(password, recvBuff);
+  printf("[%s:%d]: password: %s\n", inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port), password);
+
+  if(isLogedIn(inet_ntoa(cliaddr.sin_addr)) == NOT_LOGED_IN) {
+    int res = logIn (inet_ntoa(cliaddr.sin_addr), userName, password);
+    // for test
+    // printf("%d\n", res);
+    char sres[10];
+    tostring(sres, res);
+    send(clientConnfd, sres, sizeof(sres), 0);
+  } else {
+    printf("You're alrealdy logined\n");
+  }
+}
+
+void service_changePass(struct sockaddr_in cliaddr, int clientConnfd) {
+  int recvBytes;
+  char recvBuff[RECV_BUFF_SIZE + 1];
+
+  if(isLogedIn(inet_ntoa(cliaddr.sin_addr)) != LOGED_IN) {
+    printf("Not loged in\n");
+  } else {
+    passwordType newPassword;
+
+    recvBytes = recv(clientConnfd, recvBuff, sizeof(recvBuff), 0);
+    recvBuff[recvBytes] = '\0';
+    strcpy(newPassword, recvBuff);
+    printf("New password: %s\n", newPassword);
+
+    int numChar = 0;
+    for(int i = 0; i < strlen(newPassword); i++) {
+      if (newPassword[i] < '0'
+	  || (newPassword[i] > '9' && newPassword[i] < 'A')
+	  || (newPassword[i] > 'Z' && newPassword[i] < 'a')
+	  || newPassword[i] > 'z') {
+	send(clientConnfd, "Error", sizeof("Error"), 0);
+	break;
+      }
+
+      if(newPassword[i] <= '9' && newPassword[i] >= '0') {
+	numChar++;
+      }
     }
-  for (i = 0; i < len; i++)
-    {
-      rem = num % 10;
-      num = num / 10;
-      str[len - (i + 1)] = rem + '0';
+    printf("Changing password...\n");
+
+    changePass(inet_ntoa(cliaddr.sin_addr), newPassword);
+
+    passwordType encodePass;
+    int charCharIndex, numCharIndex;
+    encodePass[strlen(newPassword)] = '\0';
+    charCharIndex = numChar;
+    numCharIndex = 0;
+    printf("New password num: %d\n", numChar);
+    printf("New password char: %d\n", (int)(strlen(newPassword) - numChar));
+
+    for(int i = 0; i < strlen(newPassword); i++) {
+      if(newPassword[i] <= '9' && newPassword[i] >= '0') {
+	encodePass[numCharIndex] = newPassword[i];
+	numCharIndex++;
+      } else {
+	encodePass[charCharIndex] = newPassword[i];
+	charCharIndex++;
+      }
     }
-  str[len] = '\0';
+    printf("EncodedPass: %s\n", encodePass);
+    send(clientConnfd, encodePass, sizeof(encodePass), 0);
+  }
+}
+
+void service_newGame(struct sockaddr_in cliaddr, int clientConnfd) {
+
+}
+
+void service_gamePlayingHistory(struct sockaddr_in cliaddr, int clientConnfd) {
+
+}
+
+void service_signout(struct sockaddr_in cliaddr, int clientConnfd) {
+  if(isLogedIn(inet_ntoa(cliaddr.sin_addr)) == LOGED_IN) {
+    signOut(inet_ntoa(cliaddr.sin_addr));
+    print_username_pass();
+    printf("Client exited\n");
+  }
+  else printf("Not loged in\n");
 }

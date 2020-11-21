@@ -5,187 +5,182 @@
 
 char ACTIVE_CODE[ACTIVE_CODE_LENGTH] = "LTM121216";
 
-char inputFilePath[255];
-FILE* inputFile = NULL;
+char username_pass_filePath[255] = "./data/userData/username_pass.txt";
+//"./Server/data/userData/username_pass.txt";
 
-char outputFilePath[255];
-FILE* outputFile = NULL;
+accountNode* accountNode_front = NULL;
+accountNode* accountNode_rear = NULL;
 
-node* front = NULL;
-node* rear = NULL;
-
-int openInputStream(char* filePath) {
-  strcpy(inputFilePath, filePath);
-  strcpy(outputFilePath, inputFilePath); // FIle input and File input are the same
-
-  inputFile = fopen(filePath, "r+");
-
-  if(inputFile == NULL) {
-    return IO_ERROR;
-  } else {
-    return IO_SUCCESS;
+void freeAccountNode() {
+  accountNode* tmp = accountNode_front;
+  
+  while(tmp != NULL) {
+    accountNode* trash = tmp;
+    tmp = trash->next;
+    free(trash);
   }
 }
 
-void rubbishCollection() {
-  node* tmp = front;
-  
-  while(tmp != NULL) {
-    node* trash = tmp;
-    tmp = trash->next;
-    free(tmp);
-  }
+void accountRegister (userNameType newUserName, passwordType password) {
+  addAccountNode(newUserName, password, IDLE);
+  printf("Successful registration. Activation required.\n");
+
+  if(PRINT_LOGIN_INFO_DB == 1) print_username_pass();
 }
 
 // add new account -----------------------------------------
-account newAccount (char* userName, char* password, accountStatus status) {
-  account newAccount;
-
+int addAccountNode (char* userName, char* password, accountStatus status) {
   userName[strlen(userName)] = '\0';
   password[strlen(password)] = '\0';
 
-  strcpy(newAccount.userName, userName);
-  strcpy(newAccount.password, password);
-  newAccount.status = status;
-  newAccount.wrongActiveCode = 0;
-  newAccount.wrongPass = 0;
+  if(isExistUserName(userName) == ACCOUNT_EXIST) {
+    return ACCOUNT_EXIST;
+  }
 
-  newAccount.ipLimit = 0;
+  accountNode* newNode = (accountNode*)malloc(sizeof(accountNode));
 
-  addNewAccountToDB(newAccount);
-}
+  strcpy(newNode->userName, userName);
+  strcpy(newNode->password, password);
+  newNode->status = status;
+  newNode->wrongActiveCodeCount = 0;
+  newNode->wrongPassCount = 0;
+  newNode->loginedCount = 0;
+  newNode->next = NULL;
 
-void addNewAccountToDB (account newAccount) {
-  node* newNode = newAccount_node (newAccount);
-  addNode(newNode);
-}
+  for(int i = 0; i < MAX_LOGINED_IP; i++) {
+    newNode->loginedIP[i][0] = '\0';
+  }
 
-node* newAccount_node (account newAccount) {
-  node* tmp = (node*)malloc(sizeof(node));
-  tmp->data = newAccount;
-  tmp->next = NULL;
-}
-
-void addNode (node* newNode) {
-  if(front == NULL) {
-    front = newNode;
-    rear = front;
-  } else if (front != NULL) {
-    rear->next = newNode;
-    rear = newNode;
+  if(accountNode_front == NULL) {
+    accountNode_front = newNode;
+    accountNode_rear = accountNode_front;
+  } else if (accountNode_front != NULL) {
+    accountNode_rear->next = newNode;
+    accountNode_rear = newNode;
   }
 }
 
 // ============================================
-account* getAccountByUserName (char* userName) {
-   node* accountNode = getNodeByUserName(userName);
-   if(accountNode == NULL) return NULL;
-   else return &(accountNode->data);
-}
-
-node* getNodeByUserName (char* userName) {
-  node* tmp = front;
+accountNode* getAccountNodeByUserName (char* userName) {
+  accountNode* tmp = accountNode_front;
 
   while(tmp != NULL) {
-    node* tmp2 = tmp;
-    tmp = tmp2->next;
-    if (strcmp(tmp2->data.userName, userName) == 0)
-      return tmp2;
+    accountNode* getNode = tmp;
+    tmp = tmp->next;
+    if (strcmp(getNode->userName, userName) == 0) {
+      return getNode;
+    }
   }
 
   return NULL;
 }
 
 int isExistUserName(char* userName) {
-  if(getAccountByUserName(userName) != NULL)
+  if(getAccountNodeByUserName(userName) != NULL) {
     return ACCOUNT_EXIST;
+  }
   return ACCOUNT_NOT_EXIST;
 }
 
 // ===================================
-
-account* getAccount (userNameType userName, passwordType password, int *res) {
-  if(isExistUserName(userName) == ACCOUNT_NOT_EXIST) {
-    printf ("%s\n", "Error: Account not exits");
-    return NULL;
+int checkPassword(accountNode* accountCheck, char* password) {
+  if(accountCheck->status == IDLE){
+    printf ("Account is not activated\n");
+    return ACCOUNT_IDLE;
   }
-
-  account* accountAccess = getAccountByUserName(userName);
-
-  if(accountAccess->status == BLOCKED) {
-    printf ("Account is blocked");
-    printf("\n");
-    return NULL;
+  else if(accountCheck->status == BLOCKED) {
+    printf ("Account is blocked\n");
+    return ACCOUNT_BLOCKED;
   }
+  else if(strcmp(password, accountCheck->password) == 0) {
+
+    return PASS_CORRECT;
+  }
+  else {
+    printf ("Password is incorrect\n");
+    accountCheck->wrongPassCount++;
+
+    if(accountCheck->wrongPassCount == MAX_WRONG_PASS) {
+      accountCheck->status = BLOCKED;
+      return ACCOUNT_JUST_BLOCKED;
+    }
+
+    return PASS_INCORRECT;
+  }
+}
+
+accountNode* accessToAccount (userNameType userName, passwordType password, int *res) {
+  accountNode* accountAccess = getAccountNodeByUserName(userName);
 
   *res = checkPassword(accountAccess, password);
 
   if(*res == PASS_CORRECT){
-    printf("get account %s sucess\n", accountAccess->userName);
+    printf("Access to account %s sucessfully\n", accountAccess->userName);
     return accountAccess;
   }
   else {
-    if(*res == PASS_INCORRECT) {
-      printf ("Password is incorrect\n");
-    }
-    else if(*res == ACCOUNT_BLOCKED) {
-      printf ("Account is blocked\n");
-    }
-    else if(*res == ACCOUNT_IDLE) {
-      printf ("Account is not activated\n");
-    }
-
     return NULL;
   }
 }
 
 // ===================================
-void accountChangePass (account* accountModify, char* newPass) {
+void accountChangePass (accountNode* accountModify, char* newPass) {
   strcpy(accountModify->password, newPass);
-printDB();
-  storeAccountDataToFile(outputFilePath);
+  if(PRINT_LOGIN_INFO_DB == 1) print_username_pass();
 };
 
 // ============================================
-void deleteAccountByUserName (char* userName) {
-  deleteNodeByUserName(userName);
-    storeAccountDataToFile(outputFilePath);
-}
+void deleteAccountNodeByUserName (char* userName) {
+  accountNode* tmp = accountNode_front;
 
-void deleteNodeByUserName (char* userName) {
-  node* tmp = front;
+  if(strcmp(accountNode_front->userName, userName) == 0) 
+    if(accountNode_front == accountNode_rear) {
+      accountNode_front = NULL;
+      accountNode_rear = NULL;
+      return;
+    } else {
+      accountNode_front = tmp->next;
+      free(tmp);
+      return;
+    }
 
-  if(strcmp(tmp->data.userName, userName) == 0) {
-    front = tmp->next;
-    free(tmp);
-  } else {
-    node* tmp2 = tmp;
-    tmp = tmp->next;
+  accountNode* previousNode = tmp;
+  tmp = tmp->next;
 
-    do{
-      if((tmp->data.userName, userName) == 0) {
-	tmp2->next = tmp->next;
-	free(tmp);
-	break;
+  do{
+    if((tmp->userName, userName) == 0) {
+      previousNode->next = tmp->next;
+      if(tmp == accountNode_rear) {
+	accountNode_rear = previousNode;
       }
+      free(tmp);
+      break;
+    }
 
-      tmp2 = tmp;
-      tmp = tmp->next;
-    }while(tmp != NULL);
-  }
+    previousNode = tmp;
+    tmp = tmp->next;
+  }while(tmp != NULL);
 }
 
 // ===========================================================
-void loadDataFromFile () {
-  if(front != NULL) rubbishCollection();
-  front = NULL;
-  rear = NULL;
-
+void loadUsername_passData () {
+  if(accountNode_front != NULL) {
+    freeAccountNode();
+    accountNode_front = NULL;
+    accountNode_rear = NULL;
+  }
   char buf[1024];
 
   int line = 0;
 
-  while((fgets(buf, sizeof(buf), inputFile)) != NULL) {
+  FILE* username_pass_file = NULL;
+  username_pass_file = fopen(username_pass_filePath, "r+");
+  if(username_pass_file == NULL) {
+    printf("Can\'t open file \"%s\" !\n", username_pass_filePath);
+    exit(0);
+  }
+
+  while((fgets(buf, sizeof(buf), username_pass_file)) != NULL) {
     line++;
 
     int checkSpace = 0;
@@ -216,59 +211,43 @@ void loadDataFromFile () {
 
     status = atoi(tmp);
 
-    newAccount (userName, password, status);
+    addAccountNode (userName, password, status);
   }
 
-  if(PRINT_DB == 1) printDB();
-};
+  if(PRINT_LOGIN_INFO_DB == 1) print_username_pass();
 
-int storeAccountDataToFile (char* filePath) {
-  outputFile = fopen(filePath, "w");
+  fclose(username_pass_file);
+}
 
-  if(outputFile == NULL) {
-    printf("Cann\'t write into output file!\n");
-    return IO_ERROR;
-
-  } else {
-    node* tmp = front;
-
-    while(tmp != NULL) {
-      node* tmp2 = tmp;
-      tmp = tmp2->next;
-
-      fprintf(outputFile,"%s %s %d\n", tmp2->data.userName, tmp2->data.password, tmp2->data.status);
-
-    }
+int storeUsername_passData () {
+  FILE* username_pass_file = NULL;
+  username_pass_file = fopen(username_pass_filePath, "r+");
+  if(username_pass_file == NULL) {
+    printf("Can\'t open file \"%s\" !\n", username_pass_filePath);
+    exit(0);
   }
-  fclose(outputFile);
+
+  accountNode* tmp = accountNode_front;
+
+  while(tmp != NULL) {
+    fprintf(username_pass_file,"%s %s %d\n", tmp->userName, tmp->password, tmp->status);
+    tmp = tmp->next;
+  }
+  
+  fclose(username_pass_file);
   return IO_SUCCESS;
 }
 
 // ==============================================================
-int checkPassword(account* accountCheck, char* password) {
-  if(accountCheck->status == IDLE){
-printf("idle account\n");
-    return ACCOUNT_IDLE;}
-else if(accountCheck->status == BLOCKED)
-    return ACCOUNT_BLOCKED;
-  else if(strcmp(password, accountCheck->password) == 0)
-    return PASS_CORRECT;
-  else {
-    accountCheck->wrongPass ++;
-
-    if(accountCheck->wrongPass == 3) {
-      accountCheck->status = BLOCKED;
-    storeAccountDataToFile(outputFilePath);
-      return ACCOUNT_JUST_BLOCKED;
-    }
-
-    return PASS_INCORRECT;
-  }
-};
-
-// ==============================================================
 /*status: 1: active  - 0: blocked -  2: idle*/
-int activateAccount (account* accountActivate) {
+int activateAccount (userNameType userName, passwordType password, char* code) {
+  int res;
+  accountNode* accountActivate = accessToAccount(userName, password, &res);
+
+  if(accountActivate == NULL) {
+    return 0;
+  }
+
   switch (accountActivate->status) {
   case 0:
     return ACCOUNT_BLOCKED;
@@ -277,31 +256,23 @@ int activateAccount (account* accountActivate) {
     return ACCOUNT_ACTIVE;
     break;
   case 2:
-    printf ("Code: ");
-    char activeCode[ACTIVE_CODE_LENGTH];
-    scanf ("%s", activeCode);
-    getchar();
-
-    if(strcmp(activeCode, ACTIVE_CODE) == 0) {
+    if(strcmp(code, ACTIVE_CODE) == 0) {
       accountActivate->status = 1;
-    storeAccountDataToFile(outputFilePath);
-      printf ("Account is activated");
-      printf("\n");
+      printf ("Account is activated\n");
+      if(PRINT_LOGIN_INFO_DB == 1) print_username_pass();
       return ACTIVE_SUCCESS;
     } else {
-      accountActivate->wrongActiveCode ++;
+      accountActivate->wrongActiveCodeCount ++;
 
-      if(accountActivate->wrongActiveCode < 3) {
-	printf ("Account is not activated");
-	printf("\n");
+      if(accountActivate->wrongActiveCodeCount < MAX_WRONG_ACTIVE_CODE) {
+	printf ("Account is not activated\n");
         return ACTIVE_ERROR;
 
-      } else if (accountActivate->wrongActiveCode == 3) {
+      } else if (accountActivate->wrongActiveCodeCount == MAX_WRONG_ACTIVE_CODE) {
 	accountActivate->status = 0;
-	printf ("Activation code is incorrect!");
-	printf("\n");
-	printf("Account is blocked");
-	printf("\n");
+	printf ("Activation code is incorrect!\n");
+	printf("Account is blocked\n");
+	if(PRINT_LOGIN_INFO_DB == 1) print_username_pass();
         return ACCOUNT_BLOCKED;
       }
     }
@@ -309,21 +280,16 @@ int activateAccount (account* accountActivate) {
   }
 }
 
-void printDB() {
-  printf("-----------------------------");
-  printf("\n");
-  printf("Database");
-  printf("\n\n");
-  node* tmp = front;
+void print_username_pass() {
+  printf("-----------------------------\n");
+  printf("Username-password\n\n");
+  accountNode* tmp = accountNode_front;
 
   while(tmp != NULL) {
-    node* tmp2 = tmp;
-    tmp = tmp2->next;
-    printf("%s %s %d\n", tmp2->data.userName, tmp2->data.password, tmp2->data.status);
+    printf("%s %s %d\n", tmp->userName, tmp->password, tmp->status);
+    tmp = tmp->next;
   }
 
-  printf("-----------------------------");
-  printf("\n");
+  printf("-----------------------------\n");
 }
 
-// =============================================================

@@ -1,0 +1,11 @@
+Ít nhất phải có 2 người, tối đa 4 người
+Nếu đã có đủ 4 nguwoif thì bắt đầu luôn
+(Kiểm tra trong client_... xem đã có đủ cả 4 kết nối chưa)
+
+
+Có lịch sử trận đấu, ghi ra một file riêng
+
+Có thể dùng u xình để xem thằng nào được phép đi trước
+
+Hai thằng cùng hoạt độngt hì dùng tới fork
+CÒn nếu hai thằng lần lượt được hỏi thì chỉ dùng select là đủ

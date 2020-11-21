@@ -4,72 +4,66 @@
 #include <stdio.h>
 #include "errorCode.h"
 
-#define PRINT_DB 1
+#define PRINT_LOGIN_INFO_DB 1 // for testing
+
+#define MAX_USERNAME_LENGTH 50
+#define MAX_PASS_LENGTH 20
+#define ACTIVE_CODE_LENGTH 20
+
+#define MAX_WRONG_ACTIVE_CODE 3
+#define MAX_WRONG_PASS 3
+
+#define MAX_LOGINED_IP 5
 
 extern char ACTIVE_CODE[ACTIVE_CODE_LENGTH];
 
-extern char inputFilePath[255];
-extern FILE* inputFile;
-
-extern char outputFilePath[255];
-extern FILE* outputFile;
-
-typedef enum
-{    IDLE,
-  ACTIVE,
-    BLOCKED
-}accountStatus;
-
-typedef char userNameType[MAX_USERNAME_LENGTH] ;
-typedef char passwordType[MAX_PASS_LENGTH] ;
-
 /*status: 1: active  - 2: blocked -  0: idle*/
-typedef struct _account {
+typedef enum 
+  {    IDLE,
+       ACTIVE,
+       BLOCKED
+  }accountStatus;
+
+typedef char userNameType[MAX_USERNAME_LENGTH];
+typedef char passwordType[MAX_PASS_LENGTH];
+
+typedef struct _accountNode {
   userNameType userName;
   passwordType password;
   accountStatus status;
-  int wrongActiveCode;
-  int wrongPass;
+  int wrongActiveCodeCount;
+  int wrongPassCount;
+  
+  int loginedCount;
+  char loginedIP[255][5];
+  struct _accountNode* next;
+}accountNode;
 
-  int ipLimit;
-  char IP[255][5];
-}account;
+extern accountNode* accountNode_front;
+extern accountNode* accountNode_rear;
 
-typedef struct _node {
-  account data;
-  struct _node* next;
-}node;
+int openFileStream(FILE* file, char* path, char* opt);
+void freeAccountNode();
+void accountRegister (userNameType newUserName, passwordType password);
 
-extern node* front;
-extern node* rear;
-
-int openInputStream(char* filePath);
-void rubbishCollection();
-void closeInputStream();
 // add new account -----------------------------------------
-account newAccount (char* userName, char* password, accountStatus status);
-void addNewAccountToDB (account newAccount);
-node* newAccount_node (account newAccount);
-void addNode (node* newNode);
+int addAccountNode (char* userName, char* password, accountStatus status);
 // ============================================
-account* getAccountByUserName (char* userName);
-node* getNodeByUserName (char* userName);
+accountNode* getAccountNodeByUserName (char* userName);
 int isExistUserName(char* userName);
-account* getAccount (userNameType userName, passwordType password, int *res);
 // ===================================
-void accountChangePass (account* accountModify, char* newPass);
+int checkPassword(accountNode* accountCheck, char* password);
+accountNode* accessToAccount (userNameType userName, passwordType password, int *res);
+// ===================================
+void accountChangePass (accountNode* accountModify, char* newPass);
 // ============================================
-void deleteAccountByUserName (char* userName);
-void deleteNodeByUserName (char* userName);
+void deleteAccountNodeByUserName (char* userName);
 // ===========================================================
-void loadDataFromFile ();
-int storeAccountDataToFile (char* filePath);
-// ==============================================================
-int checkPassword(account* accountCheck, char* password);
+void loadUsername_passData ();
+int storeUsername_passData ();
 // ==============================================================
 /*status: 1: active  - 0: blocked -  2: idle*/
-int activateAccount (account* accountActivate);
-void printDB();
-// =============================================================
+int activateAccount (userNameType userName, passwordType password, char* code);
+void print_username_pass();
 
 #endif

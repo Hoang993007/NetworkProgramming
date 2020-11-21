@@ -7,60 +7,15 @@
 accessPermit* logedIn = NULL;
 int logedInCount = 0;
 
-int init(char* inputFile) {
-  if(openInputStream(inputFile) == IO_ERROR) {
-    printf("Cann\'t read input file!\n");
-    exit(0);
-  } else return 0;
-}
-
-void accountRegister () {
-  // 1. read data from keyboard
-  userNameType newUserName;
-  passwordType password;
-
-  printf ("Username: ");
-  scanf ("%s", newUserName);
-  getchar();
-
-  // 2. check ifExist
-  if(isExistUserName(newUserName) == ACCOUNT_NOT_EXIST) {
-    printf ("Password: ");
-    scanf ("%s", password);
-    getchar();
-
-    // 3. add to user list. status = idle
-    newAccount(newUserName, password, IDLE);
-    printf("Successful registration. Activation required.");
-  storeAccountDataToFile(outputFilePath);
-    printf("\n");
-    if(PRINT_DB == 1) printDB();
-
-  } else {
-    printf ("Account existed\n");
-    return;
-  }
-}
-
-void activate (userNameType userName, passwordType password) {
-  int res;
-  account* account_activate = getAccount (userName, password, &res);
-  if(account_activate != NULL) {
-    activateAccount(account_activate);
-    if(PRINT_DB == 1) printDB();
-  }
-}
-
 int logIn (char* IP, userNameType userName, passwordType password) {
   int res;
-  account* logInAccount = getAccount (userName, password, &res);
+  accountNode* logInAccount = accessToAccount (userName, password, &res);
   printf("Res code: %d\n", res);
   if(logInAccount == NULL)
     {
       printf("Error: Login error\n");
       return res;
     }
-
 
   if(logedInCount == 0) {
     logedIn = (accessPermit*)malloc(sizeof(accessPermit));
@@ -71,10 +26,18 @@ int logIn (char* IP, userNameType userName, passwordType password) {
     logedInCount++;
   }
 
-  strcpy(logedIn[logedInCount-1].userName, logInAccount->userName);
+  logedIn[logedInCount-1].accessAccount = logInAccount;
   strcpy(logedIn[logedInCount-1].IP, IP);
 
-  printf("Hello %s\n", logedIn[logedInCount-1].userName);
+  logInAccount->loginedCount++;
+  for(int i = 0; i < MAX_LOGINED_IP; i++) {
+    if(logedIn->accessAccount->loginedIP[i][0] = '\0') {
+      strcpy(logInAccount->loginedIP[i], IP);
+    }
+  }
+   
+  printf("Hello %s\n", logedIn[logedInCount-1].accessAccount->userName);
+
   if(PRINT_LOGEDIN == 1) printLogedInAccount();
 
   res = LOGIN_SUCCESS;
@@ -88,7 +51,7 @@ int isLogedIn (char* IP) {
 }
 
 void freeLogIn() {
-free(logedIn);
+  free(logedIn);
 }
 
 accessPermit* logInInfoGet(char* IP) {
@@ -101,38 +64,41 @@ accessPermit* logInInfoGet(char* IP) {
   return NULL;
 }
 
-void search () {
-  // 1. read data from keyboard
-  userNameType userName;
-  passwordType password;
+/* find friend
 
-  printf ("Username: ");
-  scanf ("%s", userName);
-  getchar();
+   void search () {
+   // 1. read data from keyboard
+   userNameType userName;
+   passwordType password;
 
-  if(isExistUserName(userName) == ACCOUNT_NOT_EXIST) {
-    printf ("Cannot find account\n");
-    return;
-  }
+   printf ("Username: ");
+   scanf ("%s", userName);
+   getchar();
 
-  account* accountAccess = getAccountByUserName(userName);
+   if(isExistUserName(userName) == ACCOUNT_NOT_EXIST) {
+   printf ("Cannot find account\n");
+   return;
+   }
 
-  if(accountAccess->status == BLOCKED) {
-    printf ("Account is blocked");
-    printf("\n");
-  } else if(accountAccess->status == IDLE) {
-    printf ("Account is not activated");
-    printf("\n");
-  } else if(accountAccess->status == ACTIVE) {
-    printf ("Account is active");
-    printf("\n");
-  }
-}
+   account* accountAccess = getAccountByUserName(userName);
+
+   if(accountAccess->status == BLOCKED) {
+   printf ("Account is blocked");
+   printf("\n");
+   } else if(accountAccess->status == IDLE) {
+   printf ("Account is not activated");
+   printf("\n");
+   } else if(accountAccess->status == ACTIVE) {
+   printf ("Account is active");
+   printf("\n");
+   }
+   }
+*/
 
 void changePass (char* IP, passwordType newPassword) {
   logedIn = logInInfoGet(IP);
 
-  account* accountAccess = getAccountByUserName(logedIn->userName);
+  accountNode* accountAccess = getAccountNodeByUserName(logedIn->accessAccount->userName);
 
   accountChangePass(accountAccess, newPassword);
 
@@ -158,8 +124,15 @@ void changePass (char* IP, passwordType newPassword) {
 void signOut (char* IP) {
   accessPermit* logedIn = logInInfoGet(IP);
 
-  printf ("Goodbye %s", logedIn->userName);
+  printf ("Goodbye %s", logedIn->accessAccount->userName);
   printf("\n");
+
+  logedIn->accessAccount->loginedCount--;
+  for(int i = 0; i < MAX_LOGINED_IP; i++) {
+    if(strcmp(logedIn->accessAccount->loginedIP[i], IP) == 0) {
+      logedIn->accessAccount->loginedIP[i][0] = '\0';
+    }
+  }
 
   for(int i=0; i < logedInCount; i++) {
     if(strcmp(logedIn[i].IP, IP) == 0) {
@@ -182,7 +155,7 @@ void printLogedInAccount() {
   printf("\n");
   for(int i=0; i < logedInCount; i++) {
     printf ("%s\n", logedIn[i].IP);
-    printf ("\t%s\n", logedIn[i].userName);
+    printf ("\t%s\n", logedIn[i].accessAccount->userName);
   }
   printf ("---------------------------------");
   printf("\n");
